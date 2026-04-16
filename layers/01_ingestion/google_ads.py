@@ -1,0 +1,1 @@
+# Google Ads connector implementation
