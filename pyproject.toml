@@ -1,0 +1,21 @@
+[project]
+name = "marketing-agent"
+version = "0.1.0"
+description = "D2C Marketing Analytics Engine with LLM-driven insights"
+authors = [
+    {name = "bhav", email = "bhav.nahar@gmail.com"}
+]
+dependencies = [
+    "google-analytics-data>=0.18.0",
+    "google-auth>=2.22.0",
+    "google-auth-oauthlib>=1.1.0",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.0",
+    "openai>=1.10.0",
+    "pyyaml>=6.0.1",
+    "requests>=2.31.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
