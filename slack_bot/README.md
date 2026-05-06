@@ -34,6 +34,10 @@ python app.py
 
 ### 5. Testing
 In your Slack workspace, try typing:
-- `/ads help`
-- `/ads summary`
-- `/ads campaign <campaign_name>`
+- `/ads help` - Show all commands
+- `/ads campaigns` - List all campaigns
+- `/ads summary` - Week-over-Week account summary with AI insights
+- `/ads daily` - Daily breakdown for the last 7 days
+- `/ads campaign <campaign_name>` - Campaign Diagnosis across all levels
+- `/ads adsets <campaign_name>` - Ad Set drill-down + Audience Fatigue AI
+- `/ads creatives <campaign_name>` - Creative drill-down + Creative AI
