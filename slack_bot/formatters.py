@@ -22,9 +22,9 @@ def build_summary_blocks(current, wow_changes, top_campaigns_raw, llm_insights):
             "text": {
                 "type": "mrkdwn",
                 "text": f"*Account Performance (Last 7 Days vs Previous)*\n\n"
-                        f"• *Spend:* ${current.get('spend', 0):.2f}  `{wow_changes.get('spend', 0):+.1f}%`\n"
+                        f"• *Spend:* ₹{current.get('spend', 0):.2f}  `{wow_changes.get('spend', 0):+.1f}%`\n"
                         f"• *CTR:* {current.get('ctr', 0):.2f}%  `{wow_changes.get('ctr', 0):+.1f}%` {_get_trend_icon(wow_changes.get('ctr', 0), True)}\n"
-                        f"• *CPC:* ${current.get('cpc', 0):.2f}  `{wow_changes.get('cpc', 0):+.1f}%` {_get_trend_icon(wow_changes.get('cpc', 0), False)}\n"
+                        f"• *CPC:* ₹{current.get('cpc', 0):.2f}  `{wow_changes.get('cpc', 0):+.1f}%` {_get_trend_icon(wow_changes.get('cpc', 0), False)}\n"
                         f"• *ROAS:* {current.get('roas', 0):.2f}  `{wow_changes.get('roas', 0):+.1f}%` {_get_trend_icon(wow_changes.get('roas', 0), True)}\n"
             }
         },
@@ -50,7 +50,7 @@ def build_daily_blocks(daily_data, llm_insights):
             if r.get('action_type') == 'purchase':
                 roas = float(r.get('value', 0))
                 break
-        table_text += f"`{date}` | ${spend:.2f} | {ctr:.2f}% | {roas:.2f}\n"
+        table_text += f"`{date}` | ₹{spend:.2f} | {ctr:.2f}% | {roas:.2f}\n"
 
     blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": table_text}})
     blocks.append({"type": "divider"})
@@ -86,7 +86,7 @@ def build_adset_blocks(campaign_meta, adsets, llm_insights):
             "text": {
                 "type": "mrkdwn",
                 "text": f"*{name}*\n"
-                        f"Spend: ${spend:.2f} ({spend_pct:.1f}%) {spend_icon} | CTR: {ctr:.2f}% {ctr_icon} | Freq: {freq:.2f} {freq_icon}\n"
+                        f"Spend: ₹{spend:.2f} ({spend_pct:.1f}%) {spend_icon} | CTR: {ctr:.2f}% {ctr_icon} | Freq: {freq:.2f} {freq_icon}\n"
                         f"ROAS: {roas:.2f}"
             }
         })
@@ -113,7 +113,7 @@ def build_creative_blocks(campaign_meta, ads, llm_insights):
             "text": {
                 "type": "mrkdwn",
                 "text": f"*{name}*\n"
-                        f"Spend: ${spend:.2f} ({spend_pct:.1f}%) | CTR: {ctr:.2f}%"
+                        f"Spend: ₹{spend:.2f} ({spend_pct:.1f}%) | CTR: {ctr:.2f}%"
             }
         })
         
@@ -128,7 +128,54 @@ def build_upgraded_campaign_blocks(campaign_meta, adsets, ads, llm_insights):
         {"type": "divider"}
     ]
     
-    # Very basic Top/Worst calculation for brevity in the Slack message
+    # Aggregate metrics from adsets
+    spend = sum(float(a.get('spend', 0)) for a in adsets)
+    impressions = sum(int(a.get('impressions', 0)) for a in adsets)
+    clicks = sum(int(a.get('clicks', 0)) for a in adsets)
+    reach = sum(int(a.get('reach', 0)) for a in adsets)
+    ctr = (clicks / impressions * 100) if impressions > 0 else 0
+    cpc = spend / clicks if clicks > 0 else 0
+    cpm = spend / impressions * 1000 if impressions > 0 else 0
+    freq = impressions / reach if reach > 0 else 0
+    
+    conversions = 0
+    purchases = 0
+    atc = 0
+    roas = 0.0
+    for a in adsets:
+        for act in a.get('actions', []):
+            if act.get('action_type') == 'purchase':
+                purchases += int(act.get('value', 0))
+                conversions += int(act.get('value', 0))
+            if act.get('action_type') == 'add_to_cart':
+                atc += int(act.get('value', 0))
+            if act.get('action_type') == 'lead':
+                conversions += int(act.get('value', 0))
+        for r in a.get('purchase_roas', []):
+            if r.get('action_type') == 'purchase':
+                roas = max(roas, float(r.get('value', 0)))
+                
+    cpr = spend / conversions if conversions > 0 else 0
+    atc_rate = (atc / clicks * 100) if clicks > 0 else 0
+    
+    metrics_str = f"• *Spend:* ₹{spend:.2f}  |  *CPM:* ₹{cpm:.2f}\n"
+    metrics_str += f"• *CTR:* {ctr:.2f}%  |  *CPC:* ₹{cpc:.2f}  |  *Freq:* {freq:.2f}\n"
+    
+    obj = str(campaign_meta.get('objective', '')).upper()
+    if obj in ['OUTCOME_SALES', 'OUTCOME_CONVERSIONS']:
+        metrics_str += f"• *ROAS:* {roas:.2f}  |  *Cost/Purchase:* ₹{cpr:.2f}  |  *ATC Rate:* {atc_rate:.1f}%\n"
+    elif obj == 'OUTCOME_LEADS':
+        metrics_str += f"• *Leads:* {conversions}  |  *Cost/Lead:* ₹{cpr:.2f}\n"
+        
+    blocks.append({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": metrics_str
+        }
+    })
+    
+    # Top Ad Set
     if adsets:
         try:
             sorted_adsets = sorted(adsets, key=lambda x: float(x.get('spend', 0)), reverse=True)
@@ -137,7 +184,7 @@ def build_upgraded_campaign_blocks(campaign_meta, adsets, ads, llm_insights):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Top Ad Set by Spend:*\n{top_adset.get('name')} - {top_adset.get('spend_pct', 0):.1f}% of budget"
+                    "text": f"*🔥 Top Ad Set:*\n{top_adset.get('name')} - {top_adset.get('spend_pct', 0):.1f}% of budget"
                 }
             })
         except Exception:

@@ -264,6 +264,24 @@ def fetch_campaign_summary():
     except Exception as e:
         return None, str(e)
 
+def fetch_bifurcated_baseline(objective):
+    """
+    Fetches 30-day aggregate data for all campaigns matching the objective to compute median benchmarks.
+    """
+    try:
+        account = _get_account()
+        insights = account.get_insights(
+            params={
+                'date_preset': 'last_30d',
+                'level': 'campaign',
+                'filtering': [{'field': 'campaign.objective', 'operator': 'IN', 'value': [objective]}],
+                'fields': ['campaign_id', 'spend', 'impressions', 'clicks', 'cpc', 'cpm', 'ctr', 'reach', 'frequency', 'actions', 'purchase_roas']
+            }
+        )
+        return [dict(i) for i in insights], None
+    except Exception as e:
+        return None, str(e)
+
 def calculate_wow_metrics(daily_data):
     if not daily_data or len(daily_data) == 0:
         return {}, {}, {}

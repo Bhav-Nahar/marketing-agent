@@ -58,8 +58,9 @@ def handle_ads_command(ack, respond, command):
         
         adsets, _ = meta_api.fetch_adset_data(meta['id'])
         ads, _ = meta_api.fetch_ad_data(meta['id'])
+        baseline, _ = meta_api.fetch_bifurcated_baseline(meta.get('objective', 'UNKNOWN'))
         
-        llm = llm_insights.generate_campaign_diagnosis(meta, adsets, ads)
+        llm = llm_insights.generate_campaign_diagnosis(meta, adsets, baseline)
         respond(blocks=formatters.build_upgraded_campaign_blocks(meta, adsets, ads, llm))
         return
 
@@ -73,7 +74,8 @@ def handle_ads_command(ack, respond, command):
         adsets, err = meta_api.fetch_adset_data(meta['id'])
         if err: return respond(f"⚠️ {err}")
         
-        llm = llm_insights.generate_adset_insights(meta, adsets)
+        baseline, _ = meta_api.fetch_bifurcated_baseline(meta.get('objective', 'UNKNOWN'))
+        llm = llm_insights.generate_adset_insights(meta, adsets, baseline)
         respond(blocks=formatters.build_adset_blocks(meta, adsets, llm))
         return
 
@@ -87,7 +89,8 @@ def handle_ads_command(ack, respond, command):
         ads, err = meta_api.fetch_ad_data(meta['id'])
         if err: return respond(f"⚠️ {err}")
         
-        llm = llm_insights.generate_creative_insights(meta, ads)
+        baseline, _ = meta_api.fetch_bifurcated_baseline(meta.get('objective', 'UNKNOWN'))
+        llm = llm_insights.generate_creative_insights(meta, ads, baseline)
         respond(blocks=formatters.build_creative_blocks(meta, ads, llm))
         return
 
