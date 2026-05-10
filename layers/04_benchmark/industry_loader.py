@@ -1,1 +1,0 @@
-# Industry benchmark loader
